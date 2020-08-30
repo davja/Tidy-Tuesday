@@ -1,1 +1,71 @@
 
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(forcats)
+library(ggridges)
+library(cowplot)
+library(stringr)
+
+chopped <- as_tibble(readr::read_tsv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-08-25/chopped.tsv'))
+
+  
+
+# What does the episode rating and season rating look like over time?
+chopped_cleaned <- chopped %>% 
+  filter(season < 41) %>% 
+    mutate(air_year = fct_rev(as.factor(word(air_date, -1))),
+           air_month = fct_rev(as.factor(word(air_date, 1)))) %>% 
+  add_count(air_month, name = "month_count")
+
+p1 <-  ggplot(chopped_cleaned, aes(x = episode_rating, y = as.factor(season), fill = air_year)) +
+    geom_density_ridges(rel_min_height = 0.08, alpha = 0.8) +
+    theme_ridges() +
+    scale_x_continuous(limits = c(0,10)) +
+  scale_y_discrete(breaks = c(1,seq(5,40,5))) +
+    labs(x = "Rating (0-10)",
+         y = "Season",
+         fill = "Year",
+         title = "How has the episode ratings changed between seasons and year?")
+
+
+# Most common judges?
+chopped_judges <- chopped %>% 
+  select(1:4, 7:10) %>% 
+  gather(key = "key", value = "judge", judge1:judge3) %>%
+  add_count(judge) %>% 
+  filter(n > 5)
+
+p2 <-  ggplot(data = chopped_judges, aes(x = fct_reorder(judge, n), fill = as.factor(season))) +
+  geom_bar() +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "",
+       y = "# of appearances",
+       title = "Who are the most common judges?",
+       fill = "Season number",
+       caption = "Data: TidyTuesday | @larsivanjanzen")
+
+# Month distribution
+p1_1 <- ggplot(chopped_cleaned, aes(x = fct_reorder(air_month, month_count), fill = air_year)) +
+  geom_bar() +
+  coord_flip() +
+  theme(legend.position = "none")+
+  labs(x = "",
+       y = "# episodes",
+       subtitle = "Episodes per month")
+
+
+# Combine two plots
+p12 <- plot_grid(
+  p1, p2,
+   nrow = 2
+)
+  
+
+# Final plot
+ggdraw(p12) +
+  draw_plot(p1_1, .15, .6, .3, .3)
+  
+
+
