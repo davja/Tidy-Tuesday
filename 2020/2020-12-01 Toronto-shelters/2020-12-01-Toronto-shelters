@@ -1,0 +1,18 @@
+library(ggplot2)
+library(dplyr)
+library(ggthemes)
+
+shelters <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-12-01/shelters.csv')
+
+
+### Occupancy over time
+shelters %>% 
+  group_by(occupancy_date, sector) %>% 
+  summarise(the_sum = sum(occupancy)) %>% 
+  ggplot(aes(x = occupancy_date, y = the_sum, color = sector)) + 
+  geom_smooth(aes(group = sector), se = FALSE, linetype = "dashed") +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(color = "",
+       title = "Toronto shelters",
+       caption = "Occupancy per day \n #TidyTuesday") +
+  theme_wsj()
