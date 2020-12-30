@@ -1,0 +1,56 @@
+library(tidyverse)
+library(ggsci)
+library(patchwork)
+
+big_mac_raw <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-12-22/big-mac.csv')
+
+big_mac <- big_mac_raw %>%
+  mutate(meta = case_when(
+    name == "Sweden" ~ "Sweden", 
+    name == "United States" ~ "United States", 
+    name == "China" ~ "China", 
+    TRUE ~ "Others"
+  )) %>% 
+  mutate(meta = fct_relevel(meta, "Sweden", "United States", "China", "Others", after = 0))
+
+big_mac_sweden <- big_mac %>% 
+  filter(name == "Sweden")
+
+big_mac_subset <- big_mac %>% 
+  filter(name %in% c("Sweden", "United States", "China"))         
+
+p1 <- ggplot() +
+  geom_point(data = big_mac, aes(x = date, y = dollar_price, color = meta), alpha = 0.3) +
+  geom_line(data = big_mac_subset, aes(x = date, y = dollar_price, color = meta)) +
+  theme_light() +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(x = "",
+       y = "Price in dollars",
+       color = "") +
+  scale_color_npg() +
+  theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+
+p2 <- ggplot(data = big_mac_sweden, aes(x = date, y = local_price, color = name)) +
+  geom_point() +
+  geom_line(linetype = "dashed") +
+  theme_light() +
+  scale_color_npg() +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(x = "",
+       y = "Price in Swedish krona (SEK)",
+       color = "") +
+  theme(panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+
+
+
+patchwork <- p1 + p2
+patchwork + plot_annotation(
+  title = 'The Big Mac Index',
+  subtitle = 'The price increase of a Big Mac in Sweden vs. the world',
+  caption = '#TidyTuesday | @larsivanjanzen'
+)
+
+
+ggsave("big-mac-index.png", dpi = 600)
